@@ -11,6 +11,7 @@ test("resolveAgentCommand maps known agents to commands", () => {
     ["codex", "npx @zed-industries/codex-acp"],
     ["claude", "npx -y @zed-industries/claude-agent-acp"],
     ["gemini", "gemini"],
+    ["openclaw", "openclaw acp"],
     ["opencode", "npx -y opencode-ai acp"],
     ["pi", "npx pi-acp"],
   ]);
@@ -24,10 +25,13 @@ test("resolveAgentCommand returns raw value for unknown agents", () => {
   assert.equal(resolveAgentCommand("custom-acp-server"), "custom-acp-server");
 });
 
-test("listBuiltInAgents returns exactly all 5 registered agent names", () => {
+test("listBuiltInAgents returns exactly all 6 registered agent names", () => {
   const agents = listBuiltInAgents();
-  assert.equal(agents.length, 5);
-  assert.deepEqual(new Set(agents), new Set(["codex", "claude", "gemini", "opencode", "pi"]));
+  assert.equal(agents.length, 6);
+  assert.deepEqual(
+    new Set(agents),
+    new Set(["codex", "claude", "gemini", "openclaw", "opencode", "pi"]),
+  );
 });
 
 test("default agent is codex", () => {
