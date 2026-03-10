@@ -285,6 +285,31 @@ async function handleExec(
   command: Command,
   config: ResolvedAcpxConfig,
 ): Promise<void> {
+  if (config.disableExec) {
+    const globalFlags = resolveGlobalFlags(command, config);
+    const outputPolicy = resolveOutputPolicy(globalFlags.format, globalFlags.jsonStrict === true);
+    if (outputPolicy.format === "json") {
+      process.stdout.write(
+        `${JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32603,
+            message: "exec subcommand is disabled by configuration (disableExec: true)",
+            data: {
+              acpxCode: "EXEC_DISABLED",
+            },
+          },
+        })}\n`,
+      );
+    } else {
+      process.stderr.write(
+        "Error: exec subcommand is disabled by configuration (disableExec: true)\n",
+      );
+    }
+    process.exitCode = EXIT_CODES.ERROR;
+    return;
+  }
+
   const globalFlags = resolveGlobalFlags(command, config);
   const outputPolicy = resolveOutputPolicy(globalFlags.format, globalFlags.jsonStrict === true);
   const permissionMode = resolvePermissionMode(globalFlags, config.defaultPermissions);

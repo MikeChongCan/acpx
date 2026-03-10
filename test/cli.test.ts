@@ -1360,6 +1360,100 @@ test("config defaults are loaded from global and project config files", async ()
   });
 });
 
+test("exec subcommand is blocked when disableExec is true", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = path.join(homeDir, "workspace");
+    await fs.mkdir(cwd, { recursive: true });
+    await fs.mkdir(path.join(homeDir, ".acpx"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(homeDir, ".acpx", "config.json"),
+      `${JSON.stringify(
+        {
+          disableExec: true,
+          agents: {
+            codex: { command: MOCK_AGENT_COMMAND },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runCli(["--cwd", cwd, "codex", "exec", "hello"], homeDir);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /exec subcommand is disabled by configuration/);
+  });
+});
+
+test("exec subcommand is blocked in json format when disableExec is true", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = path.join(homeDir, "workspace");
+    await fs.mkdir(cwd, { recursive: true });
+    await fs.mkdir(path.join(homeDir, ".acpx"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(homeDir, ".acpx", "config.json"),
+      `${JSON.stringify(
+        {
+          disableExec: true,
+          agents: {
+            codex: { command: MOCK_AGENT_COMMAND },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runCli(
+      ["--cwd", cwd, "--format", "json", "codex", "exec", "hello"],
+      homeDir,
+    );
+
+    assert.equal(result.code, 1);
+    const payload = JSON.parse(result.stdout.trim()) as {
+      error?: { code?: number; data?: { acpxCode?: string } };
+    };
+    assert.equal(payload.error?.code, -32603);
+    assert.equal(payload.error?.data?.acpxCode, "EXEC_DISABLED");
+  });
+});
+
+test("exec subcommand works when disableExec is false", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = path.join(homeDir, "workspace");
+    await fs.mkdir(cwd, { recursive: true });
+    await fs.mkdir(path.join(homeDir, ".acpx"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(homeDir, ".acpx", "config.json"),
+      `${JSON.stringify(
+        {
+          disableExec: false,
+          agents: {
+            codex: { command: MOCK_AGENT_COMMAND },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runCli(
+      ["--cwd", cwd, "--format", "json", "codex", "exec", "echo hello"],
+      homeDir,
+    );
+
+    // exec should work (exit code 0) since disableExec is false
+    assert.equal(result.code, 0, result.stderr);
+  });
+});
+
 async function withTempHome(run: (homeDir: string) => Promise<void>): Promise<void> {
   const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-cli-test-home-"));
   try {
