@@ -74,7 +74,7 @@ Friendly agent names resolve to commands:
 - `codex` -> `npx @zed-industries/codex-acp`
 - `claude` -> `npx -y @zed-industries/claude-agent-acp`
 - `copilot` -> `copilot --acp --stdio`
-- `gemini` -> `gemini --experimental-acp`
+- `gemini` -> `gemini --acp`
 - `openclaw` -> `openclaw acp`
 - `kimi` -> `kimi acp`
 - `opencode` -> `npx -y opencode-ai acp`

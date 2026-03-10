@@ -6,7 +6,7 @@ Built-in agents:
 - `openclaw -> openclaw acp`
 - `codex -> npx @zed-industries/codex-acp`
 - `claude -> npx -y @zed-industries/claude-agent-acp`
-- `gemini -> gemini --experimental-acp`
+- `gemini -> gemini --acp`
 - `cursor -> cursor-agent acp`
 - `copilot -> copilot --acp --stdio`
 - `kimi -> kimi acp`
@@ -17,7 +17,7 @@ Built-in agents:
 
 Harness-specific docs in this directory:
 
-- [Gemini](Gemini.md): built-in `gemini -> gemini --experimental-acp`
+- [Gemini](Gemini.md): built-in `gemini -> gemini --acp`
 - [Cursor](Cursor.md): built-in `cursor -> cursor-agent acp`
 - [Copilot](Copilot.md): built-in `copilot -> copilot --acp --stdio`
 - [Kimi](Kimi.md): built-in `kimi -> kimi acp`

@@ -285,7 +285,7 @@ Built-ins:
 | `openclaw` | native (`openclaw acp`)                                                | [OpenClaw ACP bridge](https://github.com/openclaw/openclaw)                                                     |
 | `codex`    | [codex-acp](https://github.com/zed-industries/codex-acp)               | [Codex CLI](https://codex.openai.com)                                                                           |
 | `claude`   | [claude-agent-acp](https://github.com/zed-industries/claude-agent-acp) | [Claude Code](https://claude.ai/code)                                                                           |
-| `gemini`   | native (`gemini --experimental-acp`)                                   | [Gemini CLI](https://github.com/google/gemini-cli)                                                              |
+| `gemini`   | native (`gemini --acp`)                                                | [Gemini CLI](https://github.com/google/gemini-cli)                                                              |
 | `cursor`   | native (`cursor-agent acp`)                                            | [Cursor CLI](https://cursor.com/docs/cli/acp)                                                                   |
 | `copilot`  | native (`copilot --acp --stdio`)                                       | [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-chat/use-copilot-chat-in-the-command-line) |
 | `kimi`     | native (`kimi acp`)                                                    | [Kimi CLI](https://github.com/MoonshotAI/kimi-cli)                                                              |

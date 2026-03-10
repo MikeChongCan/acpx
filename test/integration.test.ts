@@ -476,7 +476,7 @@ test("integration: gemini ACP startup timeout is surfaced as actionable error fo
       const result = await runCli(
         [
           "--agent",
-          `${JSON.stringify(fakeGeminiPath)} --experimental-acp`,
+          `${JSON.stringify(fakeGeminiPath)} --acp`,
           "--approve-all",
           "--cwd",
           cwd,

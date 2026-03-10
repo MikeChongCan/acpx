@@ -273,7 +273,7 @@ function basenameToken(value: string): string {
 }
 
 function isGeminiAcpCommand(command: string, args: readonly string[]): boolean {
-  return basenameToken(command) === "gemini" && args.includes("--experimental-acp");
+  return basenameToken(command) === "gemini" && (args.includes("--acp") || args.includes("--experimental-acp"));
 }
 
 function isClaudeAcpCommand(command: string, args: readonly string[]): boolean {
