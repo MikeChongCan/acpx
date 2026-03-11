@@ -12,6 +12,8 @@ Repo: https://github.com/openclaw/acpx
 
 - Agents/gemini: default to `--acp` for Gemini CLI and fall back to `--experimental-acp` for pre-0.33 releases. (#113)
 - ACP/prompt blocks: preserve structured ACP prompt blocks instead of flattening them during prompt handling to support images and non-text. (#103) Thanks @vincentkoc.
+- Images/prompt validation: validate structured image prompt block MIME types and base64 payloads, emit human-readable CLI usage errors, and add an explicit non-CI live Cursor ACP smoke test path. Thanks @vincentkoc.
+- Windows/process spawning: detect PATH-resolved batch wrappers such as `npx` on Windows and enable shell mode only for those commands. (#90) Thanks @lynnzc.
 
 ## 2026.3.10 (v0.1.16)
 
