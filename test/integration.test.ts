@@ -467,10 +467,14 @@ test("integration: gemini ACP startup timeout is surfaced as actionable error fo
     const previousTimeout = process.env.ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS;
 
     try {
-      await fs.writeFile(fakeGeminiPath, "#!/bin/sh\nsleep 60\n", {
-        encoding: "utf8",
-        mode: 0o755,
-      });
+      await fs.writeFile(
+        fakeGeminiPath,
+        '#!/bin/sh\nif [ "$1" = "--version" ]; then\n  echo "0.33.0"\n  exit 0\nfi\nsleep 60\n',
+        {
+          encoding: "utf8",
+          mode: 0o755,
+        },
+      );
       process.env.ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS = "100";
 
       const result = await runCli(
@@ -514,6 +518,102 @@ test("integration: gemini ACP startup timeout is surfaced as actionable error fo
       } else {
         process.env.ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS = previousTimeout;
       }
+      await fs.rm(fakeBinDir, { recursive: true, force: true });
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+test("integration: built-in gemini falls back to --experimental-acp for Gemini CLI before 0.33.0", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
+    const fakeBinDir = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-fake-gemini-"));
+    const fakeGeminiPath = path.join(fakeBinDir, "gemini");
+
+    try {
+      await fs.writeFile(
+        fakeGeminiPath,
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "--version" ]; then',
+          '  echo "0.32.9"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "--experimental-acp" ]; then',
+          "  shift",
+          `  exec "${process.execPath}" "${MOCK_AGENT_PATH}" "$@"`,
+          "fi",
+          'echo "unexpected gemini flag: $1" 1>&2',
+          "exit 2",
+          "",
+        ].join("\n"),
+        {
+          encoding: "utf8",
+          mode: 0o755,
+        },
+      );
+
+      const result = await runCli(
+        ["--approve-all", "--cwd", cwd, "--format", "quiet", "gemini", "exec", "echo hello"],
+        homeDir,
+        {
+          env: {
+            PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ""}`,
+          },
+        },
+      );
+
+      assert.equal(result.code, 0, result.stderr);
+      assert.match(result.stdout, /hello/);
+    } finally {
+      await fs.rm(fakeBinDir, { recursive: true, force: true });
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+test("integration: built-in gemini keeps --acp for Gemini CLI 0.33.0 and newer", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
+    const fakeBinDir = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-fake-gemini-"));
+    const fakeGeminiPath = path.join(fakeBinDir, "gemini");
+
+    try {
+      await fs.writeFile(
+        fakeGeminiPath,
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "--version" ]; then',
+          '  echo "0.33.0-preview.11"',
+          "  exit 0",
+          "fi",
+          'if [ "$1" = "--acp" ]; then',
+          "  shift",
+          `  exec "${process.execPath}" "${MOCK_AGENT_PATH}" "$@"`,
+          "fi",
+          'echo "unexpected gemini flag: $1" 1>&2',
+          "exit 2",
+          "",
+        ].join("\n"),
+        {
+          encoding: "utf8",
+          mode: 0o755,
+        },
+      );
+
+      const result = await runCli(
+        ["--approve-all", "--cwd", cwd, "--format", "quiet", "gemini", "exec", "echo hello"],
+        homeDir,
+        {
+          env: {
+            PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ""}`,
+          },
+        },
+      );
+
+      assert.equal(result.code, 0, result.stderr);
+      assert.match(result.stdout, /hello/);
+    } finally {
       await fs.rm(fakeBinDir, { recursive: true, force: true });
       await fs.rm(cwd, { recursive: true, force: true });
     }
