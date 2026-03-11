@@ -10,7 +10,7 @@ Repo: https://github.com/openclaw/acpx
 
 ### Fixes
 
-- Agents/gemini: use `--acp` flag instead of deprecated `--experimental-acp` for Gemini CLI. (#113)
+- Agents/gemini: default to `--acp` for Gemini CLI and fall back to `--experimental-acp` for pre-0.33 releases. (#113)
 - ACP/prompt blocks: preserve structured ACP prompt blocks instead of flattening them during prompt handling to support images and non-text. (#103) Thanks @vincentkoc.
 
 ## 2026.3.10 (v0.1.16)
