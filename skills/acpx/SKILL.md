@@ -76,6 +76,7 @@ Friendly agent names resolve to commands:
 - `codex` -> `npx @zed-industries/codex-acp`
 - `claude` -> `npx -y @agentclientprotocol/claude-agent-acp`
 - `gemini` -> `gemini --acp`
+  Gemini ACP startup uses the normal `--timeout` budget by default; set `ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS` only when you need a Gemini-specific override.
 - `cursor` -> `cursor-agent acp`
 - `copilot` -> `copilot --acp --stdio`
 - `droid` -> `droid exec --output-format acp` (`factory-droid` and `factorydroid` also resolve to `droid`)

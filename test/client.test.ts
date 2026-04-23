@@ -3,6 +3,10 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import type { RequestPermissionRequest, RequestPermissionResponse } from "@agentclientprotocol/sdk";
 import {
+  buildGeminiAcpStartupTimeoutMessage,
+  resolveGeminiAcpStartupTimeoutMs,
+} from "../src/acp/agent-command.js";
+import {
   AcpClient,
   buildAgentSpawnOptions,
   buildQoderAcpCommandArgs,
@@ -204,6 +208,43 @@ test("buildQoderAcpCommandArgs preserves explicit qoder startup flags", () => {
       },
     ),
     ["--acp", "--max-turns=3", "--allowed-tools=READ", "--disallowed-tools=BASH"],
+  );
+});
+
+test("resolveGeminiAcpStartupTimeoutMs uses the CLI timeout when no Gemini override is set", async () => {
+  await withEnv(
+    {
+      ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS: undefined,
+    },
+    () => {
+      assert.equal(resolveGeminiAcpStartupTimeoutMs(), 15_000);
+      assert.equal(resolveGeminiAcpStartupTimeoutMs(42_000), 42_000);
+    },
+  );
+});
+
+test("resolveGeminiAcpStartupTimeoutMs prefers the explicit Gemini override", async () => {
+  await withEnv(
+    {
+      ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS: "250",
+    },
+    () => {
+      assert.equal(resolveGeminiAcpStartupTimeoutMs(42_000), 250);
+    },
+  );
+});
+
+test("buildGeminiAcpStartupTimeoutMessage does not imply API keys are always required", async () => {
+  await withEnv(
+    {
+      GEMINI_API_KEY: undefined,
+      GOOGLE_API_KEY: undefined,
+    },
+    async () => {
+      const message = await buildGeminiAcpStartupTimeoutMessage("definitely-missing-gemini-binary");
+      assert.match(message, /Existing Gemini login state may still work/i);
+      assert.match(message, /when login state is unavailable/i);
+    },
   );
 });
 

@@ -532,7 +532,10 @@ export class AcpClient {
             },
           });
           const initialized = geminiAcp
-            ? await withTimeout(initializePromise, resolveGeminiAcpStartupTimeoutMs())
+            ? await withTimeout(
+                initializePromise,
+                resolveGeminiAcpStartupTimeoutMs(this.options.timeoutMs),
+              )
             : await initializePromise;
 
           await this.authenticateIfRequired(connection, initialized.authMethods ?? []);

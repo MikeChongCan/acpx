@@ -101,13 +101,20 @@ export function buildQoderAcpCommandArgs(
   return args;
 }
 
-export function resolveGeminiAcpStartupTimeoutMs(): number {
+export function resolveGeminiAcpStartupTimeoutMs(requestTimeoutMs?: number): number {
   const raw = process.env.ACPX_GEMINI_ACP_STARTUP_TIMEOUT_MS;
   if (typeof raw === "string" && raw.trim().length > 0) {
     const parsed = Number(raw);
     if (Number.isFinite(parsed) && parsed > 0) {
       return Math.round(parsed);
     }
+  }
+  if (
+    typeof requestTimeoutMs === "number" &&
+    Number.isFinite(requestTimeoutMs) &&
+    requestTimeoutMs > 0
+  ) {
+    return Math.round(requestTimeoutMs);
   }
   return GEMINI_ACP_STARTUP_TIMEOUT_MS;
 }
@@ -281,10 +288,14 @@ export async function buildGeminiAcpStartupTimeoutMessage(command: string): Prom
   }
 
   if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
-    parts.push("No GEMINI_API_KEY or GOOGLE_API_KEY was set for non-interactive auth.");
+    parts.push(
+      "No GEMINI_API_KEY or GOOGLE_API_KEY was set. Existing Gemini login state may still work, but headless environments often need API-key-based auth.",
+    );
   }
 
-  parts.push("Try upgrading Gemini CLI and using API-key-based auth for non-interactive ACP runs.");
+  parts.push(
+    "Try upgrading Gemini CLI and, when login state is unavailable, using API-key-based auth for non-interactive ACP runs.",
+  );
   return parts.join(" ");
 }
 

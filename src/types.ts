@@ -165,6 +165,7 @@ export type AcpClientOptions = {
   mcpServers?: McpServer[];
   permissionMode: PermissionMode;
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
+  timeoutMs?: number;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
   suppressSdkConsoleErrors?: boolean;
