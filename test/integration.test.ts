@@ -865,14 +865,22 @@ test("integration: qoder session reuse preserves persisted startup flags", async
 test("integration: exec forwards model, allowed-tools, and max-turns in session/new _meta", async () => {
   await withTempHome(async (homeDir) => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
+    const claudeCompatibleAgentCommand = `${MOCK_AGENT_COMMAND} --claude-agent-acp`;
 
     try {
-      const created = await runCli([...baseAgentArgs(cwd), "sessions", "new"], homeDir);
+      const created = await runCli(
+        ["--agent", claudeCompatibleAgentCommand, "--approve-all", "--cwd", cwd, "sessions", "new"],
+        homeDir,
+      );
       assert.equal(created.code, 0, created.stderr);
 
       const result = await runCli(
         [
-          ...baseAgentArgs(cwd),
+          "--agent",
+          claudeCompatibleAgentCommand,
+          "--approve-all",
+          "--cwd",
+          cwd,
           "--format",
           "json",
           "--model",
@@ -967,7 +975,7 @@ test("integration: exec --model calls session/set_model when agent advertises mo
   });
 });
 
-test("integration: exec --model skips session/set_model when agent does not advertise models", async () => {
+test("integration: exec --model fails when agent does not advertise models", async () => {
   await withTempHome(async (homeDir) => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
 
@@ -976,11 +984,11 @@ test("integration: exec --model skips session/set_model when agent does not adve
         [...baseAgentArgs(cwd), "--format", "json", "--model", "sonnet", "exec", "echo hello"],
         homeDir,
       );
-      assert.equal(result.code, 0, result.stderr);
+      assert.notEqual(result.code, 0, "expected non-zero exit");
+      assert.match(`${result.stderr}\n${result.stdout}`, /did not advertise model support/);
 
       const payloads = parseJsonRpcOutputLines(result.stdout);
 
-      // _meta.claudeCode.options.model should still be sent
       const createRequest = payloads.find((payload) => payload.method === "session/new") as
         | { params?: { _meta?: Record<string, unknown> } }
         | undefined;
@@ -990,6 +998,41 @@ test("integration: exec --model skips session/set_model when agent does not adve
       });
 
       // session/set_model should NOT be called
+      const setModelRequest = payloads.find((payload) => payload.method === "session/set_model");
+      assert.equal(setModelRequest, undefined, "session/set_model should not be called");
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+test("integration: exec --model rejects models not advertised by the agent", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
+    const modelAgentCommand = `${MOCK_AGENT_COMMAND} --advertise-models`;
+
+    try {
+      const result = await runCli(
+        [
+          "--agent",
+          modelAgentCommand,
+          "--approve-all",
+          "--cwd",
+          cwd,
+          "--format",
+          "json",
+          "--model",
+          "missing-model",
+          "exec",
+          "echo hello",
+        ],
+        homeDir,
+      );
+      assert.notEqual(result.code, 0, "expected non-zero exit");
+      assert.match(`${result.stderr}\n${result.stdout}`, /did not advertise that model/);
+      assert.match(`${result.stderr}\n${result.stdout}`, /default-model, fast-model, smart-model/);
+
+      const payloads = parseJsonRpcOutputLines(result.stdout);
       const setModelRequest = payloads.find((payload) => payload.method === "session/set_model");
       assert.equal(setModelRequest, undefined, "session/set_model should not be called");
     } finally {
@@ -1056,7 +1099,7 @@ test("integration: exec --model fails when session/set_model fails", async () =>
           "--format",
           "quiet",
           "--model",
-          "bad-model",
+          "fast-model",
           "exec",
           "echo hello",
         ],
@@ -1085,7 +1128,7 @@ test("integration: sessions new --model fails when session/set_model fails", asy
           "--cwd",
           cwd,
           "--model",
-          "bad-model",
+          "fast-model",
           "sessions",
           "new",
         ],
@@ -1191,7 +1234,7 @@ test("integration: status shows model after session creation with --model", asyn
           "--cwd",
           cwd,
           "--model",
-          "gpt-5.4",
+          "smart-model",
           "sessions",
           "new",
         ],
@@ -1211,7 +1254,7 @@ test("integration: status shows model after session creation with --model", asyn
         mode?: string;
         availableModels?: string[];
       };
-      assert.equal(statusPayload.model, "gpt-5.4");
+      assert.equal(statusPayload.model, "smart-model");
       assert(Array.isArray(statusPayload.availableModels), "expected availableModels array");
 
       // Check status text
@@ -1220,7 +1263,7 @@ test("integration: status shows model after session creation with --model", asyn
         homeDir,
       );
       assert.equal(statusText.code, 0, statusText.stderr);
-      assert.match(statusText.stdout, /model: gpt-5\.4/);
+      assert.match(statusText.stdout, /model: smart-model/);
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }

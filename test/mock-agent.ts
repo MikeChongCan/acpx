@@ -381,6 +381,10 @@ function parseMockAgentOptions(argv: string[]): MockAgentOptions {
       continue;
     }
 
+    if (token === "--claude-agent-acp") {
+      continue;
+    }
+
     if (token === "--load-replay-text") {
       supportsLoadSession = true;
       replayLoadSessionUpdates = true;

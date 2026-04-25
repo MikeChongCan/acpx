@@ -5,6 +5,7 @@ import {
   isAcpQueryClosedBeforeResponseError,
   isAcpResourceNotFoundError,
 } from "../../acp/error-normalization.js";
+import { assertRequestedModelSupported } from "../../acp/model-support.js";
 import { InterruptedError, TimeoutError, withTimeout } from "../../async-control.js";
 import {
   SessionConfigOptionReplayError,
@@ -154,18 +155,25 @@ async function replayDesiredModel(params: {
   sessionId: string;
   desiredModelId: string | undefined;
   previousSessionId: string;
+  record: SessionRecord;
   models: import("../../acp/client.js").SessionLoadResult["models"] | undefined;
   timeoutMs?: number;
   verbose?: boolean;
 }): Promise<void> {
-  if (!params.desiredModelId || !params.models) {
-    return;
-  }
-  if (params.models.currentModelId === params.desiredModelId) {
+  if (!params.desiredModelId) {
     return;
   }
 
   try {
+    assertRequestedModelSupported({
+      requestedModel: params.desiredModelId,
+      models: params.models,
+      agentCommand: params.record.agentCommand,
+      context: "replay",
+    });
+    if (!params.models || params.models.currentModelId === params.desiredModelId) {
+      return;
+    }
     await withTimeout(
       params.client.setSessionModel(params.sessionId, params.desiredModelId),
       params.timeoutMs,
@@ -331,6 +339,7 @@ export async function connectAndLoadSession(
         sessionId,
         desiredModelId,
         previousSessionId: originalSessionId,
+        record,
         models: sessionModels,
         timeoutMs: options.timeoutMs,
         verbose: options.verbose,

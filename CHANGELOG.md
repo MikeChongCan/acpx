@@ -12,6 +12,8 @@ Repo: https://github.com/openclaw/acpx
 
 ### Fixes
 
+- CLI/models: fail clearly when `--model` targets a non-Claude ACP agent that does not advertise ACP model support, and reject model ids outside an adapter's advertised `availableModels` instead of silently falling back to the adapter default.
+
 ## 2026.4.25 (v0.6.0)
 
 ### Changes

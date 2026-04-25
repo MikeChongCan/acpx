@@ -102,6 +102,7 @@ async function createSessionRecordWithClient(
         sessionId,
         requestedModel: options.sessionOptions?.model,
         models: sessionModels,
+        agentCommand: options.agentCommand,
         timeoutMs: options.timeoutMs,
       });
     } catch (error) {
@@ -122,6 +123,7 @@ async function createSessionRecordWithClient(
       sessionId,
       requestedModel: options.sessionOptions?.model,
       models: sessionModels,
+      agentCommand: options.agentCommand,
       timeoutMs: options.timeoutMs,
     });
   }

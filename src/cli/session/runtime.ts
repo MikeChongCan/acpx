@@ -4,6 +4,7 @@ import {
   isRetryablePromptError,
   normalizeOutputError,
 } from "../../acp/error-normalization.js";
+import { assertRequestedModelSupported } from "../../acp/model-support.js";
 import { InterruptedError, withInterrupt, withTimeout } from "../../async-control.js";
 export { InterruptedError, TimeoutError } from "../../async-control.js";
 import { formatPerfMetric, measurePerf, startPerfTimer } from "../../perf-metrics.js";
@@ -138,10 +139,26 @@ async function applyPromptModelIfAdvertised(params: {
 }): Promise<void> {
   const requestedModel =
     typeof params.requestedModel === "string" ? params.requestedModel.trim() : "";
-  if (!requestedModel || !Array.isArray(params.record.acpx?.available_models)) {
+  if (!requestedModel) {
     return;
   }
-  if (params.record.acpx.current_model_id === requestedModel) {
+
+  const availableModels = params.record.acpx?.available_models;
+  assertRequestedModelSupported({
+    requestedModel,
+    models: Array.isArray(availableModels)
+      ? {
+          currentModelId: params.record.acpx?.current_model_id ?? "",
+          availableModels: availableModels.map((modelId) => ({ modelId, name: modelId })),
+        }
+      : undefined,
+    agentCommand: params.record.agentCommand,
+    context: "apply",
+  });
+  if (!Array.isArray(availableModels)) {
+    return;
+  }
+  if (params.record.acpx?.current_model_id === requestedModel) {
     setDesiredModelId(params.record, requestedModel);
     return;
   }
@@ -737,6 +754,7 @@ export async function runOnce(options: RunOnceOptions): Promise<RunPromptResult>
           sessionId,
           requestedModel: options.sessionOptions?.model,
           models: createdSession.models,
+          agentCommand: options.agentCommand,
           timeoutMs: options.timeoutMs,
         });
 

@@ -634,6 +634,62 @@ test("connectAndLoadSession replays desired model on a fresh session", async () 
   });
 });
 
+test("connectAndLoadSession fails clearly when saved model cannot be replayed generically", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = path.join(homeDir, "workspace");
+    await fs.mkdir(cwd, { recursive: true });
+
+    const record = makeSessionRecord({
+      acpxRecordId: "model-replay-unsupported-record",
+      acpSessionId: "stale-session",
+      agentCommand: "agent",
+      cwd,
+      acpx: {
+        session_options: {
+          model: "gpt-5.4",
+        },
+      },
+    });
+
+    const client: FakeClient = {
+      hasReusableSession: () => false,
+      start: async () => {},
+      getAgentLifecycleSnapshot: () => ({
+        running: true,
+      }),
+      supportsLoadSession: () => false,
+      loadSessionWithOptions: async () => {
+        throw new Error("loadSessionWithOptions should not be called");
+      },
+      createSession: async () => ({
+        sessionId: "fresh-session",
+        agentSessionId: "fresh-runtime",
+      }),
+      setSessionMode: async () => {},
+      setSessionModel: async () => {
+        throw new Error("setSessionModel should not be called");
+      },
+    };
+
+    await assert.rejects(
+      async () =>
+        await connectAndLoadSession({
+          client: client as never,
+          record,
+          activeController: ACTIVE_CONTROLLER,
+        }),
+      (error: unknown) => {
+        assert(error instanceof Error);
+        assert.equal(error.name, "SessionModelReplayError");
+        assert.match(error.message, /did not advertise model support/);
+        return true;
+      },
+    );
+
+    assert.equal(record.acpSessionId, "stale-session");
+  });
+});
+
 test("connectAndLoadSession restores the original session when desired model replay fails", async () => {
   await withTempHome(async (homeDir) => {
     const cwd = path.join(homeDir, "workspace");

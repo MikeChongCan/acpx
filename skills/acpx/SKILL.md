@@ -155,7 +155,7 @@ Behavior:
 - `set-mode` mode ids are adapter-defined; unsupported values are rejected by the adapter (often `Invalid params`).
 - `set`: calls ACP `session/set_config_option`.
 - For codex, `thought_level` is accepted as a compatibility alias for codex-acp `reasoning_effort`.
-- `--model <id>`: passed through to agent-specific session creation metadata when applicable; if the agent advertises models, `acpx` also applies it via `session/set_model`.
+- `--model <id>`: Claude-compatible adapters may consume session creation metadata; other agents must advertise ACP models and support `session/set_model`, otherwise `acpx` fails clearly instead of silently falling back.
 - `set model <id>`: calls `session/set_model`. This is the generic ACP method for mid-session model switching.
 - `set-mode`/`set` route through queue-owner IPC when active, otherwise reconnect directly.
 
@@ -202,7 +202,7 @@ Behavior:
 - `--suppress-reads`: suppress raw read-file contents while preserving the selected format
 - `--timeout <seconds>`: max wait time (positive number)
 - `--ttl <seconds>`: queue owner idle TTL before shutdown (default `300`, `0` disables TTL)
-- `--model <id>`: request an agent model during session creation; when the agent advertises models, `acpx` also applies it via `session/set_model`
+- `--model <id>`: request an agent model during session creation; non-Claude agents must advertise ACP models and support `session/set_model`
 - `--verbose`: verbose ACP/debug logs to stderr
 
 Permission flags are mutually exclusive.
