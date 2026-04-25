@@ -1356,7 +1356,7 @@ test("integration: perf metrics capture checkpoints queue-owner turns before own
         );
       });
       assert(queueOwnerRecord, "expected queue owner checkpoint record before owner exit");
-      assert.equal(readPerfTimingCount(queueOwnerRecord, "session.write_record"), 1);
+      assert.equal(readPerfTimingCount(queueOwnerRecord, "session.write_record"), 2);
 
       const status = await runCli([...baseAgentArgs(cwd), "--format", "json", "status"], homeDir);
       assert.equal(status.code, 0, status.stderr);
@@ -2869,6 +2869,57 @@ test("integration: prompt --no-wait is processed by the detached queue owner", a
         homeDir,
       );
       assert.equal(closed.code, 0, closed.stderr);
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+test("integration: sessions history shows in-flight prompt after prompt starts", async () => {
+  await withTempHome(async (homeDir) => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-integration-cwd-"));
+
+    try {
+      const created = await runCli(
+        [...baseAgentArgs(cwd), "--format", "json", "sessions", "new"],
+        homeDir,
+      );
+      assert.equal(created.code, 0, created.stderr);
+
+      const promptChild = spawn(
+        process.execPath,
+        [CLI_PATH, ...baseAgentArgs(cwd), "--format", "quiet", "prompt", "sleep 1500"],
+        {
+          env: {
+            ...process.env,
+            HOME: homeDir,
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+
+      try {
+        const history = await waitFor(async () => {
+          const result = await runCli(
+            [...baseAgentArgs(cwd), "--format", "quiet", "sessions", "history"],
+            homeDir,
+          );
+          assert.equal(result.code, 0, result.stderr);
+          return result.stdout.includes("sleep 1500") ? result.stdout : null;
+        }, 5_000);
+
+        assert.match(history, /sleep 1500/);
+        assert.doesNotMatch(history, /No history/);
+
+        const promptResult = await awaitChildClose(promptChild);
+        assert.equal(promptResult.code, 0, promptResult.stderr);
+        assert.match(promptResult.stdout, /slept 1500ms/);
+      } finally {
+        if (promptChild.exitCode == null && promptChild.signalCode == null) {
+          promptChild.kill("SIGKILL");
+          await awaitChildClose(promptChild).catch(() => {});
+        }
+      }
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }

@@ -842,7 +842,7 @@ export class AcpClient {
   async closeSession(sessionId: string): Promise<void> {
     const connection = this.getConnection();
     await this.runConnectionRequest(() =>
-      connection.closeSession({
+      connection.unstable_closeSession({
         sessionId,
       }),
     );

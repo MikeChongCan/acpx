@@ -519,8 +519,14 @@ export class AcpRuntimeManager {
         record = await this.requireRecord(input.handle.acpxRecordId ?? input.handle.sessionKey);
         conversation = cloneSessionConversation(record);
         acpxState = cloneSessionAcpxState(record.acpx);
-        const promptMessageId = recordPromptSubmission(conversation, promptInput, isoNow());
+        const promptStartedAt = isoNow();
+        const promptMessageId = recordPromptSubmission(conversation, promptInput, promptStartedAt);
         trimConversationForRuntime(conversation);
+        record.lastPromptAt = promptStartedAt;
+        record.lastUsedAt = promptStartedAt;
+        record.acpx = acpxState;
+        applyConversation(record, conversation);
+        await this.options.sessionStore.save(record);
 
         const pendingClient = await this.readPendingPersistentClient(record, { consume: true });
         client =

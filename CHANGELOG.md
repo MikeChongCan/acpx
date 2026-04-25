@@ -18,6 +18,8 @@ Repo: https://github.com/openclaw/acpx
 
 ### Fixes
 
+- CLI/sessions: persist the submitted prompt at turn start so `sessions history` and `sessions read` no longer report `No history` while an active prompt is already running. (#157)
+- Output/errors: add text-mode remediation hints for timeouts, provider rate limits, and invalid model names.
 - CLI/quiet output: emit final token usage and cost metadata to stderr when adapters include it in the ACP prompt result, while keeping quiet stdout as assistant text only. (#257)
 - Runtime/doctor: guarantee `doctor().details` contains strings even when probe failures include Error or object values. (#267)
 - Runtime/WSL: translate session cwd with `wslpath` when running under WSL and spawning Windows `.exe` ACP agents, so `session/new` and `session/load` receive paths the agent can access. (#232)

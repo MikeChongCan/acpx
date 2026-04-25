@@ -252,6 +252,35 @@ test("text remediation hints cover missing session and ACP runtime failures", ()
   ]);
   assert.deepEqual(
     getTextErrorRemediationHints({
+      code: "TIMEOUT",
+      message: "Timed out after 1000ms",
+    }),
+    [
+      "hint: increase `--timeout <seconds>` for long-running prompts, or check whether the agent/provider is stalled.",
+    ],
+  );
+  assert.deepEqual(
+    getTextErrorRemediationHints({
+      code: "RUNTIME",
+      message: "Provider returned 429 rate limit exceeded",
+      origin: "acp",
+    }),
+    [
+      "hint: the provider appears rate-limited; retry later, switch model, or check provider quota/billing.",
+    ],
+  );
+  assert.deepEqual(
+    getTextErrorRemediationHints({
+      code: "RUNTIME",
+      message: "model not found: cerebras/qwen-3-coder-480b",
+      origin: "acp",
+    }),
+    [
+      "hint: check the configured model name for this agent, then retry with `--model <model>` or `sessions set-model <model>`.",
+    ],
+  );
+  assert.deepEqual(
+    getTextErrorRemediationHints({
       code: "RUNTIME",
       message: "Failed session/set_mode for mode plan: Invalid params",
       origin: "acp",

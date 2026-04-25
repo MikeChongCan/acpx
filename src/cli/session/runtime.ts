@@ -29,7 +29,12 @@ import {
 } from "../../session/conversation-model.js";
 import { SessionEventWriter } from "../../session/events.js";
 import { setCurrentModelId, setDesiredModelId } from "../../session/mode-preference.js";
-import { absolutePath, isoNow, resolveSessionRecord } from "../../session/persistence.js";
+import {
+  absolutePath,
+  isoNow,
+  resolveSessionRecord,
+  writeSessionRecord,
+} from "../../session/persistence.js";
 import type {
   AcpJsonRpcMessage,
   AcpMessageDirection,
@@ -384,7 +389,13 @@ async function runSessionPrompt(options: RunSessionPromptOptions): Promise<Sessi
   });
   const conversation = cloneSessionConversation(record);
   let acpxState = cloneSessionAcpxState(record.acpx);
-  const promptMessageId = recordPromptSubmission(conversation, options.prompt, isoNow());
+  const promptStartedAt = isoNow();
+  const promptMessageId = recordPromptSubmission(conversation, options.prompt, promptStartedAt);
+  record.lastPromptAt = promptStartedAt;
+  record.lastUsedAt = promptStartedAt;
+  applyConversation(record, conversation);
+  record.acpx = acpxState;
+  await writeSessionRecord(record);
 
   output.setContext({
     sessionId: record.acpxRecordId,

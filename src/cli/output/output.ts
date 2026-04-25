@@ -318,6 +318,12 @@ export function getTextErrorRemediationHints(params: RenderableOutputError): str
     return [renderAuthRequiredHint(params)];
   }
 
+  if (params.code === "TIMEOUT") {
+    return [
+      "hint: increase `--timeout <seconds>` for long-running prompts, or check whether the agent/provider is stalled.",
+    ];
+  }
+
   if (params.code === "NO_SESSION") {
     if (lowerMessage.includes("create one:")) {
       return [];
@@ -341,6 +347,26 @@ export function getTextErrorRemediationHints(params: RenderableOutputError): str
     return [
       "hint: rerun with `--verbose` to capture the ACP load failure details.",
       "hint: if you do not need the old backend session, start a fresh one with `acpx <agent> sessions new` and retry.",
+    ];
+  }
+
+  if (
+    /\b429\b/u.test(params.message) ||
+    lowerMessage.includes("rate limit") ||
+    lowerMessage.includes("quota exceeded")
+  ) {
+    return [
+      "hint: the provider appears rate-limited; retry later, switch model, or check provider quota/billing.",
+    ];
+  }
+
+  if (
+    lowerMessage.includes("model not found") ||
+    lowerMessage.includes("unknown model") ||
+    lowerMessage.includes("invalid model")
+  ) {
+    return [
+      "hint: check the configured model name for this agent, then retry with `--model <model>` or `sessions set-model <model>`.",
     ];
   }
 
