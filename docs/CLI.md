@@ -319,6 +319,8 @@ Behavior:
 - `sessions new` creates a fresh cwd-scoped default session
 - `sessions new --name <name>` creates a fresh named session for cwd
 - creating a fresh session soft-closes the previous open session in that scope (if present)
+- text and quiet output print the local `acpxRecordId`; JSON output also includes
+  `acpxSessionId` and, when the adapter exposes one, `agentSessionId`
 - `sessions ensure` returns the nearest matching active session or creates one for cwd
 - `sessions ensure --name <name>` does the same for named sessions
 - `sessions close` soft-closes the current cwd default session
