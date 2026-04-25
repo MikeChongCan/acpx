@@ -152,54 +152,12 @@ function compareVersionParts(left: readonly number[], right: readonly number[]):
 }
 
 async function detectGeminiVersion(command: string): Promise<GeminiVersion | undefined> {
-  return await new Promise<GeminiVersion | undefined>((resolve) => {
-    const child = spawn(
-      command,
-      ["--version"],
-      buildSpawnCommandOptions(command, {
-        stdio: ["ignore", "pipe", "pipe"],
-        windowsHide: true,
-      }),
-    );
-
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-    const finish = (value: GeminiVersion | undefined) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      child.removeAllListeners();
-      child.stdout?.removeAllListeners();
-      child.stderr?.removeAllListeners();
-      resolve(value);
-    };
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      finish(undefined);
-    }, GEMINI_VERSION_TIMEOUT_MS);
-
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr?.on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.once("error", () => {
-      finish(undefined);
-    });
-    child.once("close", () => {
-      const versionLine = `${stdout}\n${stderr}`
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find((line) => /\d+\.\d+\.\d+/.test(line));
-      finish(parseGeminiVersion(versionLine));
-    });
-  });
+  const output = await readCommandOutput(command, ["--version"], GEMINI_VERSION_TIMEOUT_MS);
+  const versionLine = output
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /\d+\.\d+\.\d+/.test(line));
+  return parseGeminiVersion(versionLine);
 }
 
 export async function resolveGeminiCommandArgs(

@@ -1,4 +1,5 @@
 import type { SetSessionConfigOptionResponse } from "@agentclientprotocol/sdk";
+import { toAcpErrorPayload } from "../../acp/error-shapes.js";
 import { isAcpJsonRpcMessage } from "../../acp/jsonrpc.js";
 import { isPromptInput, textPrompt } from "../../prompt-content.js";
 import {
@@ -169,25 +170,6 @@ function isOutputErrorCode(value: unknown): value is OutputErrorCode {
 
 function isOutputErrorOrigin(value: unknown): value is OutputErrorOrigin {
   return typeof value === "string" && OUTPUT_ERROR_ORIGINS.includes(value as OutputErrorOrigin);
-}
-
-function parseAcpError(value: unknown): OutputErrorAcpPayload | undefined {
-  const record = asRecord(value);
-  if (!record) {
-    return undefined;
-  }
-  if (typeof record.code !== "number" || !Number.isFinite(record.code)) {
-    return undefined;
-  }
-  if (typeof record.message !== "string" || record.message.length === 0) {
-    return undefined;
-  }
-
-  return {
-    code: record.code,
-    message: record.message,
-    data: record.data,
-  };
 }
 
 function parseSessionOptions(value: unknown): QueueSessionOptions | null | undefined {
@@ -537,7 +519,7 @@ export function parseQueueOwnerMessage(raw: unknown): QueueOwnerMessage | null {
         ? message.detailCode
         : undefined;
     const retryable = typeof message.retryable === "boolean" ? message.retryable : undefined;
-    const acp = parseAcpError(message.acp);
+    const acp = toAcpErrorPayload(message.acp);
     const outputAlreadyEmitted =
       typeof message.outputAlreadyEmitted === "boolean" ? message.outputAlreadyEmitted : undefined;
 

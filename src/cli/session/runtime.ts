@@ -37,52 +37,32 @@ import {
 } from "../../session/persistence.js";
 import type {
   AcpJsonRpcMessage,
-  AcpMessageDirection,
   AuthPolicy,
-  ClientOperation,
   McpServer,
   NonInteractivePermissionPolicy,
   OutputErrorAcpPayload,
   OutputErrorCode,
   OutputErrorOrigin,
   OutputFormatter,
-  PermissionMode,
-  PromptInput,
   RunPromptResult,
-  SessionNotification,
   SessionRecord,
-  SessionResumePolicy,
   SessionSendResult,
 } from "../../types.js";
 import { type QueueOwnerMessage, type QueueTask, waitMs } from "../queue/ipc.js";
 import { type QueueOwnerActiveSessionController } from "../queue/owner-turn-controller.js";
 import type { RunOnceOptions, SessionSendOptions } from "./contracts.js";
+import { applyRequestedModelIfAdvertised } from "./model-helpers.js";
 
 const INTERRUPT_CANCEL_WAIT_MS = 2_500;
 
-type RunSessionPromptOptions = {
+type RunSessionPromptOptions = Omit<
+  SessionSendOptions,
+  "errorEmissionPolicy" | "maxQueueDepth" | "sessionId" | "ttlMs" | "waitForCompletion"
+> & {
   sessionRecordId: string;
-  prompt: PromptInput;
-  resumePolicy?: SessionResumePolicy;
-  mcpServers?: McpServer[];
-  permissionMode: PermissionMode;
-  nonInteractivePermissions?: NonInteractivePermissionPolicy;
-  authCredentials?: Record<string, string>;
-  authPolicy?: AuthPolicy;
-  terminal?: boolean;
-  outputFormatter: OutputFormatter;
-  onAcpMessage?: (direction: AcpMessageDirection, message: AcpJsonRpcMessage) => void;
-  onSessionUpdate?: (notification: SessionNotification) => void;
-  onClientOperation?: (operation: ClientOperation) => void;
-  timeoutMs?: number;
-  suppressSdkConsoleErrors?: boolean;
-  verbose?: boolean;
-  promptRetries?: number;
-  sessionOptions?: SessionAgentOptions;
   onClientAvailable?: (controller: ActiveSessionController) => void;
   onClientClosed?: () => void;
   onPromptActive?: () => Promise<void> | void;
-  client?: AcpClient;
 };
 
 type ActiveSessionController = QueueOwnerActiveSessionController;
@@ -147,29 +127,6 @@ function toPromptResult(
     sessionId,
     permissionStats: client.getPermissionStats(),
   };
-}
-
-async function applyRequestedModelIfAdvertised(params: {
-  client: AcpClient;
-  sessionId: string;
-  requestedModel: string | undefined;
-  models: import("../../acp/client.js").SessionCreateResult["models"];
-  timeoutMs?: number;
-}): Promise<boolean> {
-  const requestedModel =
-    typeof params.requestedModel === "string" ? params.requestedModel.trim() : "";
-  if (!requestedModel || !params.models) {
-    return false;
-  }
-  if (params.models.currentModelId === requestedModel) {
-    return true;
-  }
-
-  await withTimeout(
-    params.client.setSessionModel(params.sessionId, requestedModel),
-    params.timeoutMs,
-  );
-  return true;
 }
 
 async function applyPromptModelIfAdvertised(params: {

@@ -30,6 +30,7 @@ import {
   resolvePermissionMode,
   resolveSessionNameFromFlags,
   type ExecFlags,
+  type GlobalFlags,
   type PromptFlags,
   type SessionsHistoryFlags,
   type SessionsNewFlags,
@@ -154,6 +155,70 @@ function resolveRequestedOutputPolicy(globalFlags: {
     ...resolveOutputPolicy(globalFlags.format, globalFlags.jsonStrict === true),
     suppressReads: globalFlags.suppressReads === true,
   };
+}
+
+type ResolvedAgentInvocation = ReturnType<typeof resolveAgentInvocation>;
+
+function sessionOptionsFromGlobalFlags(
+  globalFlags: GlobalFlags,
+): NonNullable<Parameters<SessionModule["createSession"]>[0]["sessionOptions"]> {
+  return {
+    model: globalFlags.model,
+    allowedTools: globalFlags.allowedTools,
+    maxTurns: globalFlags.maxTurns,
+    systemPrompt: globalFlags.systemPrompt,
+  };
+}
+
+function buildSessionStartOptions(params: {
+  agent: ResolvedAgentInvocation;
+  flags: SessionsNewFlags;
+  globalFlags: GlobalFlags;
+  config: ResolvedAcpxConfig;
+  permissionMode: ReturnType<typeof resolvePermissionMode>;
+}): Parameters<SessionModule["createSession"]>[0] {
+  return {
+    agentCommand: params.agent.agentCommand,
+    cwd: params.agent.cwd,
+    name: params.flags.name,
+    resumeSessionId: params.flags.resumeSession,
+    mcpServers: params.config.mcpServers,
+    permissionMode: params.permissionMode,
+    nonInteractivePermissions: params.globalFlags.nonInteractivePermissions,
+    authCredentials: params.config.auth,
+    authPolicy: params.globalFlags.authPolicy,
+    terminal: params.globalFlags.terminal,
+    timeoutMs: params.globalFlags.timeout,
+    verbose: params.globalFlags.verbose,
+    sessionOptions: sessionOptionsFromGlobalFlags(params.globalFlags),
+  };
+}
+
+function missingScopedSessionMessage(
+  agent: ResolvedAgentInvocation,
+  sessionName: string | undefined,
+): string {
+  return sessionName
+    ? `No named session "${sessionName}" for cwd ${agent.cwd} and agent ${agent.agentName}`
+    : `No cwd session for ${agent.cwd} and agent ${agent.agentName}`;
+}
+
+async function findScopedSessionOrThrow(
+  agent: ResolvedAgentInvocation,
+  sessionName: string | undefined,
+): Promise<SessionRecord> {
+  const record = await findSession({
+    agentCommand: agent.agentCommand,
+    cwd: agent.cwd,
+    name: sessionName,
+    includeClosed: true,
+  });
+
+  if (!record) {
+    throw new Error(missingScopedSessionMessage(agent, sessionName));
+  }
+
+  return record;
 }
 
 async function findRoutedSessionOrThrow(
@@ -589,11 +654,7 @@ export async function handleSessionsClose(
   });
 
   if (!record) {
-    throw new Error(
-      sessionName
-        ? `No named session "${sessionName}" for cwd ${agent.cwd} and agent ${agent.agentName}`
-        : `No cwd session for ${agent.cwd} and agent ${agent.agentName}`,
-    );
+    throw new Error(missingScopedSessionMessage(agent, sessionName));
   }
 
   const closed = await closeSession(record.acpxRecordId);
@@ -625,26 +686,9 @@ export async function handleSessionsNew(
     }
   }
 
-  const created = await createSession({
-    agentCommand: agent.agentCommand,
-    cwd: agent.cwd,
-    name: flags.name,
-    resumeSessionId: flags.resumeSession,
-    mcpServers: config.mcpServers,
-    permissionMode,
-    nonInteractivePermissions: globalFlags.nonInteractivePermissions,
-    authCredentials: config.auth,
-    authPolicy: globalFlags.authPolicy,
-    terminal: globalFlags.terminal,
-    timeoutMs: globalFlags.timeout,
-    verbose: globalFlags.verbose,
-    sessionOptions: {
-      model: globalFlags.model,
-      allowedTools: globalFlags.allowedTools,
-      maxTurns: globalFlags.maxTurns,
-      systemPrompt: globalFlags.systemPrompt,
-    },
-  });
+  const created = await createSession(
+    buildSessionStartOptions({ agent, flags, globalFlags, config, permissionMode }),
+  );
 
   printCreatedSessionBanner(created, agent.agentName, globalFlags.format, globalFlags.jsonStrict);
 
@@ -667,26 +711,9 @@ export async function handleSessionsEnsure(
   const agent = resolveAgentInvocation(explicitAgentName, globalFlags, config);
   const [{ ensureSession }, { printCreatedSessionBanner, printEnsuredSessionByFormat }] =
     await Promise.all([loadSessionModule(), loadOutputRenderModule()]);
-  const result = await ensureSession({
-    agentCommand: agent.agentCommand,
-    cwd: agent.cwd,
-    name: flags.name,
-    resumeSessionId: flags.resumeSession,
-    mcpServers: config.mcpServers,
-    permissionMode,
-    nonInteractivePermissions: globalFlags.nonInteractivePermissions,
-    authCredentials: config.auth,
-    authPolicy: globalFlags.authPolicy,
-    terminal: globalFlags.terminal,
-    timeoutMs: globalFlags.timeout,
-    verbose: globalFlags.verbose,
-    sessionOptions: {
-      model: globalFlags.model,
-      allowedTools: globalFlags.allowedTools,
-      maxTurns: globalFlags.maxTurns,
-      systemPrompt: globalFlags.systemPrompt,
-    },
-  });
+  const result = await ensureSession(
+    buildSessionStartOptions({ agent, flags, globalFlags, config, permissionMode }),
+  );
 
   if (result.created) {
     printCreatedSessionBanner(
@@ -846,20 +873,7 @@ export async function handleSessionsShow(
 ): Promise<void> {
   const globalFlags = resolveGlobalFlags(command, config);
   const agent = resolveAgentInvocation(explicitAgentName, globalFlags, config);
-  const record = await findSession({
-    agentCommand: agent.agentCommand,
-    cwd: agent.cwd,
-    name: sessionName,
-    includeClosed: true,
-  });
-
-  if (!record) {
-    throw new Error(
-      sessionName
-        ? `No named session "${sessionName}" for cwd ${agent.cwd} and agent ${agent.agentName}`
-        : `No cwd session for ${agent.cwd} and agent ${agent.agentName}`,
-    );
-  }
+  const record = await findScopedSessionOrThrow(agent, sessionName);
 
   printSessionDetailsByFormat(record, globalFlags.format);
 }
@@ -873,20 +887,7 @@ export async function handleSessionsHistory(
 ): Promise<void> {
   const globalFlags = resolveGlobalFlags(command, config);
   const agent = resolveAgentInvocation(explicitAgentName, globalFlags, config);
-  const record = await findSession({
-    agentCommand: agent.agentCommand,
-    cwd: agent.cwd,
-    name: sessionName,
-    includeClosed: true,
-  });
-
-  if (!record) {
-    throw new Error(
-      sessionName
-        ? `No named session "${sessionName}" for cwd ${agent.cwd} and agent ${agent.agentName}`
-        : `No cwd session for ${agent.cwd} and agent ${agent.agentName}`,
-    );
-  }
+  const record = await findScopedSessionOrThrow(agent, sessionName);
 
   printSessionHistoryByFormat(record, flags.limit, globalFlags.format);
 }
