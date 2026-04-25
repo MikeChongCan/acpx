@@ -61,6 +61,32 @@ test("tryAcquireQueueOwnerLease creates a lease that can be refreshed and releas
   });
 });
 
+test("tryAcquireQueueOwnerLease assigns collision-resistant owner generations", async () => {
+  await withTempHome(async () => {
+    const originalDateNow = Date.now;
+    const originalMathRandom = Math.random;
+    Date.now = () => 1_777_072_400_000;
+    Math.random = () => 0;
+
+    try {
+      const first = await tryAcquireQueueOwnerLease("lease-generation-a");
+      const second = await tryAcquireQueueOwnerLease("lease-generation-b");
+      assert(first);
+      assert(second);
+      assert.notEqual(first.ownerGeneration, second.ownerGeneration);
+      assert(Number.isSafeInteger(first.ownerGeneration));
+      assert(Number.isSafeInteger(second.ownerGeneration));
+      assert(first.ownerGeneration > 0);
+      assert(second.ownerGeneration > 0);
+      await releaseQueueOwnerLease(first);
+      await releaseQueueOwnerLease(second);
+    } finally {
+      Date.now = originalDateNow;
+      Math.random = originalMathRandom;
+    }
+  });
+});
+
 test("tryAcquireQueueOwnerLease tightens queue directory permissions", async () => {
   if (process.platform === "win32") {
     return;

@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import fs from "node:fs/promises";
 import { queueBaseDir, queueLockFilePath, queueSocketBaseDir, queueSocketPath } from "./paths.js";
 
@@ -66,7 +67,7 @@ function parseQueueOwnerRecord(raw: unknown): QueueOwnerRecord | null {
 }
 
 function createOwnerGeneration(): number {
-  return Date.now() * 1_000 + Math.floor(Math.random() * 1_000);
+  return randomInt(1, 2 ** 48);
 }
 
 function nowIso(): string {
