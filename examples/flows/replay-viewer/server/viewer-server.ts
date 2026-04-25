@@ -84,7 +84,7 @@ export async function createReplayViewerServer(
         response.setHeader("content-type", "application/json; charset=utf-8");
         response.end(
           JSON.stringify({
-            error: error instanceof Error ? error.message : String(error),
+            error: formatUnknownError(error),
           }),
         );
         return;
@@ -272,6 +272,19 @@ function writeJson(response: http.ServerResponse, statusCode: number, value: unk
   response.statusCode = statusCode;
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.end(JSON.stringify(value));
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") {
+    return String(error);
+  }
+  return "Unknown error";
 }
 
 function contentTypeFor(filePath: string): string {

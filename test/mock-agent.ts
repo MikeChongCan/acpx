@@ -115,6 +115,8 @@ function describePromptBlocks(prompt: ContentBlock[]): string {
           return { type: "text", text: block.text };
         case "image":
           return { type: "image", mimeType: block.mimeType, bytes: block.data.length };
+        case "audio":
+          return { type: "audio", mimeType: block.mimeType, bytes: block.data.length };
         case "resource_link":
           return { type: "resource_link", uri: block.uri };
         case "resource":
@@ -123,6 +125,8 @@ function describePromptBlocks(prompt: ContentBlock[]): string {
             uri: block.resource.uri,
             hasText: "text" in block.resource && typeof block.resource.text === "string",
           };
+        default:
+          return { type: (block as { type: string }).type };
       }
     }),
   );
@@ -1058,4 +1062,8 @@ if (mockAgentOptions.ignoreSigterm) {
   });
 }
 
-new AgentSideConnection((connection) => new MockAgent(connection, mockAgentOptions), stream);
+const connection = new AgentSideConnection(
+  (agentConnection) => new MockAgent(agentConnection, mockAgentOptions),
+  stream,
+);
+void connection;

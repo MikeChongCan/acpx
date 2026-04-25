@@ -292,7 +292,10 @@ async function writeFixture(
   for (const [index, definition] of cases.entries()) {
     const id = definition.id;
     assert.equal(typeof id, "string");
-    requiredCases.push(id as string);
+    if (typeof id !== "string") {
+      throw new TypeError("Conformance case id must be a string.");
+    }
+    requiredCases.push(id);
 
     const fileName = `${String(index + 1).padStart(3, "0")}-${id}.json`;
     await fs.writeFile(

@@ -223,10 +223,7 @@ test("integration: flow run executes function and shell actions from --input-fil
       assert.equal(payload.status, "completed");
       assert.equal(payload.outputs?.prepare?.text, "SMOKE");
       assert.equal(payload.outputs?.finalize?.value, "SMOKE");
-      assert.equal(
-        await fs.realpath(String(payload.outputs?.finalize?.cwd ?? "")),
-        await fs.realpath(cwd),
-      );
+      assert.equal(await fs.realpath(payload.outputs?.finalize?.cwd ?? ""), await fs.realpath(cwd));
     } finally {
       await fs.rm(cwd, { recursive: true, force: true });
     }
@@ -289,7 +286,9 @@ test("integration: flow run finalizes interrupted bundles on SIGHUP", async () =
 
       assert.equal(finalState.currentNode, "slow");
       assert.equal(finalState.currentAttemptId, "slow#1");
-      assert.match(String(finalState.statusDetail ?? ""), /Failed in slow: Interrupted/);
+      const statusDetail =
+        typeof finalState.statusDetail === "string" ? finalState.statusDetail : "";
+      assert.match(statusDetail, /Failed in slow: Interrupted/);
 
       const traceEvents = (await fs.readFile(path.join(runDir, "trace.ndjson"), "utf8"))
         .trim()
@@ -340,9 +339,7 @@ test("integration: flow run fails ACP nodes promptly when the agent disconnects 
         "failed",
       );
       assert.match(
-        String(
-          (finalState.results as Record<string, { error?: string }>).slow?.error ?? result.stderr,
-        ),
+        (finalState.results as Record<string, { error?: string }>).slow?.error ?? result.stderr,
         /agent disconnected/i,
       );
     } finally {
@@ -2451,7 +2448,7 @@ test("integration: prompt retries stop after partial prompt output", async () =>
         homeDir,
       );
       assert.notEqual(result.code, 0, result.stderr);
-      assert.equal(/retrying in/.test(result.stderr), false, result.stderr);
+      assert.equal(result.stderr.includes("retrying in"), false, result.stderr);
 
       const payloads = parseJsonRpcOutputLines(result.stdout);
       const partialUpdates = payloads.filter(
@@ -2482,7 +2479,7 @@ test("integration: exec retries stop after partial prompt output", async () => {
         homeDir,
       );
       assert.equal(result.code, 1, result.stderr);
-      assert.equal(/retrying in/.test(result.stderr), false, result.stderr);
+      assert.equal(result.stderr.includes("retrying in"), false, result.stderr);
 
       const payloads = parseJsonRpcOutputLines(result.stdout);
       const partialUpdates = payloads.filter(

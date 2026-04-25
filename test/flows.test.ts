@@ -343,7 +343,7 @@ test("FlowRunner executes isolated ACP nodes and branches deterministically", as
           }),
           route: compute({
             run: ({ outputs }) => ({
-              next: String((outputs.first as { next: string }).next),
+              next: (outputs.first as { next: string }).next,
             }),
           }),
           yes: action({
@@ -508,10 +508,10 @@ test("FlowRunner writes isolated ACP bundle traces and artifacts", async () => {
       assert.ok(traceEvents.some((event) => event.type === "acp_response_parsed"));
 
       const record = JSON.parse(
-        await fs.readFile(path.join(result.runDir, manifest.sessions[0]!.recordPath), "utf8"),
+        await fs.readFile(path.join(result.runDir, manifest.sessions[0].recordPath), "utf8"),
       ) as { messages: unknown[]; lastSeq: number };
       const bundledEvents = (
-        await fs.readFile(path.join(result.runDir, manifest.sessions[0]!.eventsPath), "utf8")
+        await fs.readFile(path.join(result.runDir, manifest.sessions[0].eventsPath), "utf8")
       )
         .trim()
         .split("\n")
@@ -594,10 +594,10 @@ test("FlowRunner writes persistent ACP bundle traces and session bindings", asyn
       assert.ok(traceEvents.some((event) => event.type === "acp_response_parsed"));
 
       const record = JSON.parse(
-        await fs.readFile(path.join(result.runDir, manifest.sessions[0]!.recordPath), "utf8"),
+        await fs.readFile(path.join(result.runDir, manifest.sessions[0].recordPath), "utf8"),
       ) as { messages: unknown[]; lastSeq: number };
       const bundledEvents = (
-        await fs.readFile(path.join(result.runDir, manifest.sessions[0]!.eventsPath), "utf8")
+        await fs.readFile(path.join(result.runDir, manifest.sessions[0].eventsPath), "utf8")
       )
         .trim()
         .split("\n")

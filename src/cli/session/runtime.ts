@@ -429,7 +429,7 @@ async function runSessionPrompt(options: RunSessionPromptOptions): Promise<Sessi
       return;
     }
 
-    const batch = pendingMessages.splice(0, pendingMessages.length);
+    const batch = pendingMessages.splice(0);
     await measurePerf("session.events.flush_pending", async () => {
       await eventWriter.appendMessages(batch, { checkpoint });
     });

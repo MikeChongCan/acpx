@@ -23,14 +23,14 @@ function makeRequest(kind: RequestPermissionRequest["toolCall"]["kind"]): Reques
       kind,
       title: "tool call",
     },
-    options: BASE_OPTIONS.map((option) => ({ ...option })),
+    options: BASE_OPTIONS.map((option) => Object.assign({}, option)),
   } as RequestPermissionRequest;
 }
 
 function makeRequestWithTitle(
   title: string | undefined,
-  kind: RequestPermissionRequest["toolCall"]["kind"] = undefined,
-  options: PermissionChoice[] = BASE_OPTIONS.map((option) => ({ ...option })),
+  kind?: RequestPermissionRequest["toolCall"]["kind"],
+  options: PermissionChoice[] = BASE_OPTIONS.map((option) => Object.assign({}, option)),
 ): RequestPermissionRequest {
   return {
     sessionId: "session-1",
@@ -39,7 +39,7 @@ function makeRequestWithTitle(
       kind,
       title,
     },
-    options: options.map((option) => ({ ...option })),
+    options: options.map((option) => Object.assign({}, option)),
   } as RequestPermissionRequest;
 }
 
